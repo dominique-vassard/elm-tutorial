@@ -22,6 +22,7 @@ main =
 
 type alias Model =
     { topic : String
+    , new_topic : String
     , gifUrl : String
     , error : String
     }
@@ -29,7 +30,7 @@ type alias Model =
 
 init : String -> ( Model, Cmd Msg )
 init topic =
-    ( Model "cats" "./images/waiting.gif" "", getRandomGif topic )
+    ( Model "cats" "" "./images/waiting.gif" "", getRandomGif topic )
 
 
 
@@ -56,6 +57,8 @@ decodeGifUrl =
 type Msg
     = MorePlease
     | NewGif (Result Http.Error String)
+    | NewTopic String
+    | AddNewTopic
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -63,6 +66,15 @@ update msg model =
     case msg of
         MorePlease ->
             ( model, getRandomGif model.topic )
+
+        NewTopic new_topic ->
+            ( { model | new_topic = new_topic }, Cmd.none )
+
+        AddNewTopic ->
+            if not (String.isEmpty model.new_topic) then
+                ( { model | topic = model.new_topic, new_topic = "" }, getRandomGif model.new_topic )
+            else
+                ( model, Cmd.none )
 
         NewGif (Ok newUrl) ->
             ( { model | gifUrl = newUrl }, Cmd.none )
@@ -97,6 +109,9 @@ view model =
         , br [] []
         , img [ src model.gifUrl ] []
         , button [ onClick MorePlease ] [ text "Moar Please!" ]
+        , br [] []
+        , input [ type_ "text", placeholder "Enter new topic", onInput NewTopic ] []
+        , button [ onClick AddNewTopic ] [ text "Add" ]
         ]
 
 
