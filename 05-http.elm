@@ -26,13 +26,13 @@ type alias Model =
     , new_topic : String
     , gifUrl : String
     , error : String
-    , test_topics : List String
+    , topics : List String
     }
 
 
 init : String -> ( Model, Cmd Msg )
 init topic =
-    ( Model "cats" "" "./images/waiting.gif" "" [ "cats", "dogs" ] ""
+    ( Model "cats" "" "./images/waiting.gif" "" [ "cats", "dogs" ]
     , getRandomGif topic
     )
 
@@ -81,13 +81,20 @@ update msg model =
 
         AddNewTopic ->
             if not (String.isEmpty model.new_topic) then
-                ( { model
-                    | topic = model.new_topic
-                    , new_topic = ""
-                    , test_topics = model.test_topics ++ [ model.new_topic ]
-                  }
-                , getRandomGif model.new_topic
-                )
+                let
+                    topic_list =
+                        if (List.filter (\x -> x == model.new_topic) model.topics |> List.length) == 0 then
+                            model.topics ++ [ model.new_topic ]
+                        else
+                            model.topics
+                in
+                    ( { model
+                        | topic = model.new_topic
+                        , new_topic = ""
+                        , topics = topic_list
+                      }
+                    , getRandomGif model.new_topic
+                    )
             else
                 ( model, Cmd.none )
 
@@ -142,7 +149,7 @@ view model =
         , button [ onClick AddNewTopic ] [ text "Add" ]
         , br [] []
         , Html.select [ value model.topic, onSelect ChangeTopic ]
-            (List.map (\x -> option [ value x ] [ text x ]) model.test_topics)
+            (List.map (\x -> option [ value x ] [ text x ]) model.topics)
         ]
 
 
