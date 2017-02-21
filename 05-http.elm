@@ -7,6 +7,7 @@ import Http
 import Json.Decode
 
 
+main : Program Never Model Msg
 main =
     Html.program
         { init = init "cats"
@@ -25,12 +26,15 @@ type alias Model =
     , new_topic : String
     , gifUrl : String
     , error : String
+    , test_topics : List String
     }
 
 
 init : String -> ( Model, Cmd Msg )
 init topic =
-    ( Model "cats" "" "./images/waiting.gif" "", getRandomGif topic )
+    ( Model "cats" "" "./images/waiting.gif" "" [ "cats", "dogs" ] ""
+    , getRandomGif topic
+    )
 
 
 
@@ -41,7 +45,8 @@ getRandomGif : String -> Cmd Msg
 getRandomGif topic =
     let
         url =
-            "https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag=" ++ topic
+            "https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag="
+                ++ topic
 
         request =
             Http.get url decodeGifUrl
@@ -59,6 +64,7 @@ type Msg
     | NewGif (Result Http.Error String)
     | NewTopic String
     | AddNewTopic
+    | ChangeTopic String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -67,12 +73,21 @@ update msg model =
         MorePlease ->
             ( model, getRandomGif model.topic )
 
+        ChangeTopic change_topic ->
+            ( { model | topic = change_topic }, getRandomGif change_topic )
+
         NewTopic new_topic ->
             ( { model | new_topic = new_topic }, Cmd.none )
 
         AddNewTopic ->
             if not (String.isEmpty model.new_topic) then
-                ( { model | topic = model.new_topic, new_topic = "" }, getRandomGif model.new_topic )
+                ( { model
+                    | topic = model.new_topic
+                    , new_topic = ""
+                    , test_topics = model.test_topics ++ [ model.new_topic ]
+                  }
+                , getRandomGif model.new_topic
+                )
             else
                 ( model, Cmd.none )
 
@@ -88,10 +103,17 @@ update msg model =
                     ( { model | error = "ERROR: Reques timeout" }, Cmd.none )
 
                 Http.NetworkError ->
-                    ( { model | error = "ERROR: Can't contact server." }, Cmd.none )
+                    ( { model | error = "ERROR: Can't contact server." }
+                    , Cmd.none
+                    )
 
                 Http.BadStatus status ->
-                    ( { model | error = "ERROR: Bad request status" ++ (toString status) }, Cmd.none )
+                    ( { model
+                        | error =
+                            "ERROR: Bad request status" ++ (toString status)
+                      }
+                    , Cmd.none
+                    )
 
                 Http.BadPayload reason _ ->
                     ( { model | error = "Bad payload: " ++ reason }, Cmd.none )
@@ -105,14 +127,28 @@ view : Model -> Html Msg
 view model =
     div []
         [ h2 [] [ text model.topic ]
-        , span [ style [ ( "color", "red" ), ( "font-weight", "800" ) ] ] [ text model.error ]
+        , span [ style [ ( "color", "red" ), ( "font-weight", "800" ) ] ]
+            [ text model.error ]
         , br [] []
         , img [ src model.gifUrl ] []
         , button [ onClick MorePlease ] [ text "Moar Please!" ]
         , br [] []
-        , input [ type_ "text", placeholder "Enter new topic", onInput NewTopic ] []
+        , input
+            [ type_ "text"
+            , placeholder "Enter new topic"
+            , onInput NewTopic
+            ]
+            []
         , button [ onClick AddNewTopic ] [ text "Add" ]
+        , br [] []
+        , Html.select [ value model.topic, onSelect ChangeTopic ]
+            (List.map (\x -> option [ value x ] [ text x ]) model.test_topics)
         ]
+
+
+onSelect : (String -> Msg) -> Attribute Msg
+onSelect msg =
+    on "change" (Json.Decode.map msg Html.Events.targetValue)
 
 
 subscriptions : Model -> Sub Msg
