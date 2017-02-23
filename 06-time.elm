@@ -1,10 +1,12 @@
 module Main exposing (..)
 
-import Html exposing (Html, div, text)
+import Html exposing (Html, div, text, span)
+import Html.Attributes exposing (style)
 import Html.Events exposing (onClick)
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
 import Time exposing (Time, second)
+import Task
 import Date
 
 
@@ -30,7 +32,7 @@ type alias Model =
 
 init : ( Model, Cmd Msg )
 init =
-    ( { clockTime = 0, clockOn = True }, Cmd.none )
+    ( { clockTime = 0, clockOn = True }, Task.perform Tick Time.now )
 
 
 
@@ -107,6 +109,30 @@ view model =
 
         handMY =
             toString (50 + 40 * sin angleM)
+
+        hourText =
+            (if hours < 10 then
+                "0"
+             else
+                ""
+            )
+                ++ toString hours
+
+        minuteText =
+            (if minutes < 10 then
+                "0"
+             else
+                ""
+            )
+                ++ toString minutes
+
+        secondText =
+            (if seconds < 10 then
+                "0"
+             else
+                ""
+            )
+                ++ toString seconds
     in
         div []
             [ svg
@@ -116,6 +142,6 @@ view model =
                 , line [ x1 "50", y1 "50", x2 handHX, y2 handHY, stroke "black" ] []
                 , line [ x1 "50", y1 "50", x2 handX, y2 handY, stroke "red" ] []
                 ]
-            , div [] [ Html.text ((toString hours) ++ ":" ++ (toString minutes) ++ ":" ++ (toString minutes)) ]
+            , span [ Html.Attributes.style [ ( "font-size", "50px" ), ( "font-weight", "800" ) ] ] [ Html.text (hourText ++ ":" ++ minuteText ++ ":" ++ secondText) ]
             , Html.button [ onClick StopClock ] [ Html.text "Stop" ]
             ]
